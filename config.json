@@ -1,4 +1,5 @@
 {
+  "APP_PORT": 4545,
   "API_URL": "https://www.nathosts.com/includes/api.php",
   "API_TIMEOUT": 5000,
   "API_IDENTIFIER": "cbA1ulDcJRtxFCtf1nryRGnjGBOe3HYx",

@@ -245,11 +245,13 @@ exports.createRouter = (app) => {
             };
             ctx.redirect('/');
         } catch (e) {
+            let data = {};
             if (e.response && e.response.data) {
-                e.message += e.response.data;
+                e.message += JSON.stringify(e.response.data);
+                data = e.response.data;
             }
             return await ctx.render('error', {
-                error: {msg: `登录失败,${e.message}`}
+                error: {msg: `登录失败,${e.message}`, data: data}
             });
         }
     });

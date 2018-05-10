@@ -6,6 +6,7 @@ const path = require('path');
 const app = new Koa();
 const createRouter = require('./router').createRouter;
 app.keys = ['some secret hurr'];
+const config = require('../config');
 render(app, {
     root: path.join(__dirname, '/../views'),
     //layout: 'template',
@@ -24,6 +25,6 @@ const router = createRouter(app);
 app.use(router.routes()).use(router.allowedMethods());
 app.use(serve(staticPath));
 
-app.listen(4545, (err, res) => {
-    console.log("Server is running....")
+app.listen(config.APP_PORT, (err, res) => {
+    console.log(`Server is running on ${config.APP_PORT}....`)
 });
