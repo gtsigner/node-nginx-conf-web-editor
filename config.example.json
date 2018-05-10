@@ -1,0 +1,12 @@
+{
+  "APP_PORT": 4545,
+  "API_URL": "https://www.xx.com/includes/api.php",
+  "API_TIMEOUT": 5000,
+  "API_IDENTIFIER": "",
+  "API_SECRET": "",
+  "NGINX_VHOSTS_PATH": "xx",
+  "NGINX_BIN": "xx",
+  "AdminId": "admin_unique_id",
+  "AdminUsername": "admin",
+  "AdminPassword": "xx"
+}
