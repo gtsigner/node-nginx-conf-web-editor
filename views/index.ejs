@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nginx Conf 域名反向代理修改器</title>
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <style>
+        h3.title {
+            display: block;
+            line-height: 50px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        #app {
+            display: none;
+        }
+
+        .tip {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<h3 class="text-center title">欢迎您，<%- user.typeName %>
+    <small><a href="/login.html">切换账号</a></small>
+</h3>
+<div class="container" id="app">
+    <div class="row">
+        <table class="table table-hover table-bordered text-center">
+            <thead>
+            <tr>
+                <th>UserId</th>
+                <th>域名</th>
+                <th>类型</th>
+                <th>子网IP</th>
+                <th>子网端口</th>
+                <th>证书</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(l,i) in list" :key="i">
+                <td>{{l._userId}}</td>
+                <td>{{l.domain}}</td>
+                <td>Http/Https</td>
+                <td>{{l.proxyIp}}</td>
+                <td>{{l.proxyPort}}</td>
+                <td></td>
+                <td>
+                    <button @click="remove(l._id)" type="button" class="btn btn-sm btn-danger">删除</button>
+                </td>
+            </tr>
+            <tr v-if="list.length===0">
+                <td class="text-center" colspan="20">
+                    无数据
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="row">
+        <div class="col"></div>
+        <div class="col">
+            <form action="/domain/bind" method="post" class="form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="">域名</label>
+                    <input type="text" class="form-control" name="domain">
+                </div>
+                <div class="form-group" v-if="user.isAdmin">
+                    <label for="">子网IP</label>
+                    <input type="text" class="form-control" name="proxyIp">
+                </div>
+                <div class="form-group" v-if="!user.isAdmin">
+                    <label for="">子网IP产品</label>
+                    <select v-model="newBind.proxyIp" name="proxyIp" class="form-control">
+                        <option value="">选择已购买的产品</option>
+                        <option :value="p.ip" v-for="p in products" v-html="p.name+'('+p.domain+')'"></option>
+                    </select>
+                    <small v-if="newBind.proxyIp!==''" class="tip">IP：{{newBind.proxyIp}}</small>
+                </div>
+                <div class="form-group">
+                    <label for="">子网端口</label>
+                    <input type="number" v-model="newBind.proxyPort" class="form-control" name="proxyPort">
+                </div>
+                <div class="form-group">
+                    <label for="">证书Pem</label>
+                    <input type="file" name="pem">
+                </div>
+                <div class="form-group">
+                    <label for="">证书Key</label>
+                    <input type="file" name="key">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-block btn-primary">提交</button>
+                </div>
+            </form>
+        </div>
+        <div class="col"></div>
+    </div>
+</div>
+<!-- 开发环境版本，包含了用帮助的命令行警告 -->
+<script src="https://cdn.bootcss.com/axios/0.18.0/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script>
+    ((window) => {
+        Vue.prototype.$http = axios;
+        const user = <%- JSON.stringify(user) %>;
+        const app = new Vue({
+            el: '#app',
+            data: {
+                user: user,
+                list: [],
+                isLoading: true,
+                products: [],
+                newBind: {
+                    domain: '',
+                    port: '',
+                    proxyIp: '',//子网IP
+                    proxyPort: 8080,
+                    ssl: {},
+                }
+            },
+            methods: {
+                getList: function () {
+                    var _self = this;
+                    this.$http.get('/domain/lists').then(function (res) {
+                        _self.list = [];
+                        res.data.forEach(function (item) {
+                            _self.list.push(item)
+                        })
+                    });
+                },
+                remove: function (id) {
+                    var _self = this;
+                    this.$http.delete(`/domain/remove/${id}`).then(function (res) {
+                        _self.getList();
+                    });
+                },
+                getProducts: function () {
+                    var _self = this;
+                    this.$http.get(`/domain/products`).then(function (res) {
+                        _self.products = [...res.data];
+                    });
+                }
+            },
+            created: function () {
+                this.getList();
+                if (!this.user.isAdmin) {
+                    this.getProducts();
+                }
+            },
+            mounted() {
+                this.$el.style.display = 'block';
+            }
+        });
+    })(window);
+</script>
+</body>
+</html>

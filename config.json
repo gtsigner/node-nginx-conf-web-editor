@@ -1,0 +1,9 @@
+{
+  "API_URL": "https://www.nathosts.com/includes/api.php",
+  "API_TIMEOUT": 5000,
+  "API_IDENTIFIER": "cbA1ulDcJRtxFCtf1nryRGnjGBOe3HYx",
+  "API_SECRET": "S49MrsbrdC52yTUotN5bX5GL9rO17iUU",
+  "AdminId": "admin_unique_id",
+  "AdminUsername": "admin",
+  "AdminPassword": "admin"
+}
