@@ -3,6 +3,8 @@
   "API_TIMEOUT": 5000,
   "API_IDENTIFIER": "cbA1ulDcJRtxFCtf1nryRGnjGBOe3HYx",
   "API_SECRET": "S49MrsbrdC52yTUotN5bX5GL9rO17iUU",
+  "NGINX_VHOSTS_PATH": "E:\\IdeFiles\\PHPStudy\\PHPTutorial\\nginx\\conf\\vhosts",
+  "NGINX_BIN": "E:\\IdeFiles\\PHPStudy\\PHPTutorial\\nginx\\nginx.exe",
   "AdminId": "admin_unique_id",
   "AdminUsername": "admin",
   "AdminPassword": "admin"

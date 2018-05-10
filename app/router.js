@@ -88,27 +88,79 @@ exports.createRouter = (app) => {
 //Model：｛ _id,domain,type,proxyIp,proxyPort,certsPath｝
     router.post('/domain/bind', async (ctx, next) => {
         const params = ctx.request.body.fields;
+
+        params.domain = params.domain.trim();
+        params.proxyIp = params.proxyIp.trim();
+        params.proxyPort = params.proxyPort.trim();
+
         const certs = ctx.request.body.files;
 
         //全部空
-        if (params.domain === '' || params.proxyIp === '' || params.proxyPort === '') {
+        if (params.protocol === '' || params.domain === '' || params.proxyIp === '' || params.proxyPort === '') {
             return await ctx.render('error', {
                 error: {
                     msg: '请检查绑定参数'
                 }
             })
         }
+        //验证域名
+        if (/^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$/.test(params.domain) === false) {
+            return await ctx.render('error', {
+                error: {
+                    msg: '域名格式错误'
+                }
+            });
+        }
+        //验证协议
+        if (params.protocol !== 'http' && params.protocol !== 'https') {
+            return await ctx.render('error', {
+                error: {
+                    msg: '协议选择错误'
+                }
+            });
+        }
 
-        let newFile = await Nginxer.copyNew(params.domain);
-        let res = await Nginxer.update(newFile, certs, {
-            ...params
-        });
-        await Nginxer.reload();
-        await DB.insert({
-            ...res,
-            _userId: ctx.user._id
-        });
-        ctx.redirect('/');
+        //验证proxyIP
+        if (!ctx.user.isAdmin) {
+            const servers = await getUserProducts(ctx.user._id);
+            let serv = servers.filter((it) => {
+                return it.ip === params.proxyIp;
+            });
+            if (serv.length === 0) {
+                return await ctx.render('error', {
+                    error: {
+                        msg: '您选择的产品不存在'
+                    }
+                });
+            }
+        }
+
+        //验证域名和协议是否存在
+        let ext = await DB.findOne({domain: params.domain, protocol: params.protocol});
+        if (ext) {
+            return await ctx.render('error', {
+                error: {msg: "存在重复的域名+协议规则"}
+            })
+        }
+
+        try {
+            let newFile = await Nginxer.copyNew(params.domain, params.protocol);
+            let res = await Nginxer.update(newFile, certs, {
+                ...params
+            });
+            let test = Nginxer.test();//先测试文件是否异常
+            await Nginxer.reload();
+            await DB.insert({
+                ...res,
+                protocol: params.protocol,
+                _userId: ctx.user._id
+            });
+            ctx.redirect('/');
+        } catch (e) {
+            return await ctx.render('error', {
+                error: {msg: e.message}
+            })
+        }
     });
 
     /**
@@ -149,7 +201,7 @@ exports.createRouter = (app) => {
                 where._userId = ctx.user._id;
             }
             const bind = await DB.findOne(where);
-            await Nginxer.remove(bind.confFile);
+            await Nginxer.remove(bind.name, bind.protocol);//移除配置文件
             await DB.remove({_id: id});
             ctx.body = {'message': 'success', code: 100};
         } catch (e) {
@@ -157,6 +209,9 @@ exports.createRouter = (app) => {
         }
     });
 
+    /**
+     * 登录授权
+     */
     router.post('/auth/login', async (ctx, next) => {
         try {
             ctx.session.user = null;

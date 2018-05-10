@@ -33,23 +33,25 @@
         <table class="table table-hover table-bordered text-center">
             <thead>
             <tr>
+                <th>编号</th>
                 <th>UserId</th>
+                <th>名称</th>
                 <th>域名</th>
                 <th>类型</th>
                 <th>子网IP</th>
                 <th>子网端口</th>
-                <th>证书</th>
                 <th>操作</th>
             </tr>
             </thead>
             <tbody>
             <tr v-for="(l,i) in list" :key="i">
+                <td>{{l._id}}</td>
                 <td>{{l._userId}}</td>
+                <td>{{l.name}}</td>
                 <td>{{l.domain}}</td>
-                <td>Http/Https</td>
+                <td>{{l.protocol}}</td>
                 <td>{{l.proxyIp}}</td>
                 <td>{{l.proxyPort}}</td>
-                <td></td>
                 <td>
                     <button @click="remove(l._id)" type="button" class="btn btn-sm btn-danger">删除</button>
                 </td>
@@ -87,12 +89,21 @@
                     <input type="number" v-model="newBind.proxyPort" class="form-control" name="proxyPort">
                 </div>
                 <div class="form-group">
-                    <label for="">证书Pem</label>
-                    <input type="file" name="pem">
+                    <label for="">协议类型</label>
+                    <select v-model="newBind.protocol" name="protocol" id="" class="form-control">
+                        <option value="http">http / 80</option>
+                        <option value="https">https / 443</option>
+                    </select>
                 </div>
-                <div class="form-group">
-                    <label for="">证书Key</label>
-                    <input type="file" name="key">
+                <div v-if="newBind.protocol==='https'">
+                    <div class="form-group">
+                        <label for="">证书Pem</label>
+                        <input type="file" name="pem">
+                    </div>
+                    <div class="form-group">
+                        <label for="">证书Key</label>
+                        <input type="file" name="key">
+                    </div>
                 </div>
                 <div class="form-group">
                     <button type="submit" class="btn btn-block btn-primary">提交</button>
@@ -118,9 +129,9 @@
                 products: [],
                 newBind: {
                     domain: '',
-                    port: '',
                     proxyIp: '',//子网IP
                     proxyPort: 8080,
+                    protocol: 'http',
                     ssl: {},
                 }
             },

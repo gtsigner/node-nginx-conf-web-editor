@@ -4,3 +4,4 @@ certs/*
 !certs/README.md
 etc/vhosts/*
 !etc/vhosts/README.md
+package-lock.json

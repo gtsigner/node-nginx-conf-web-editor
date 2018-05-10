@@ -25,6 +25,7 @@
     "nedb-promise": "^2.0.1",
     "nginx-conf": "^1.4.0",
     "sb-scandir": "^2.0.0",
-    "uuid": "^3.2.1"
+    "uuid": "^3.2.1",
+    "validator": "^10.2.0"
   }
 }

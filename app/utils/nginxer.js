@@ -3,6 +3,9 @@ const fs = require('fs-extra');
 const exec = require('child_process').exec;
 const logger = require('./logger');
 const scandir = require('sb-scandir');
+const config = require('../../config');
+const path = require('path');
+
 let params = {
     domain: 'blog.oeynet.com',//域名
     listenPort: 80,
@@ -11,18 +14,26 @@ let params = {
 };
 
 //主机目录
-const vHostsPath = __dirname + '/../../etc/vhosts';
-const tplFile = __dirname + '/../../etc/domain.tpl.conf';
-const certsPath = __dirname + '/../../certs';
-const ETC_PATH = __dirname + '/../../etc';
+const vHostsPath = path.join(config.NGINX_VHOSTS_PATH);
+const HTTP_CONF_FILE = __dirname + '/../../etc/domain.http.tpl.conf';
+const HTTPS_CONF_FILE = __dirname + '/../../etc/domain.https.tpl.conf';
+const certsPath = path.join(__dirname, '/../../certs');
+
 /**
  * 拷贝模版到新的路径
  * @param domain
+ * @param protocol
  * @returns {Promise<any>}
  */
-exports.copyNew = async (domain) => {
+exports.copyNew = async (domain, protocol) => {
     //Copy新的文件到目录,名字为*.conf
-    const newFile = `${vHostsPath}/${domain}.conf`
+    const newFile = `${vHostsPath}/${domain}.${protocol}.conf`;
+    let tplFile;
+    if (protocol === 'http') {
+        tplFile = HTTP_CONF_FILE;
+    } else {
+        tplFile = HTTPS_CONF_FILE;
+    }
     return new Promise((resolve, reject) => {
         fs.copy(tplFile, newFile, function (err, files) {
             if (err) {
@@ -51,51 +62,44 @@ exports.update = async (file, certs, params) => {
             conf.on('flushed', function () {
                 logger.info(`${file}文件更新成功`);
             });
-            const upStream = params.domain.replace(/\./g, '_');
-            conf.nginx.upstream._value = upStream;
-            //UpStream只有一个对象
-            if (conf.nginx.upstream.server.length === 'undefined') {
-                conf.nginx.upstream.server._value = `${params.proxyIp}:${params.proxyPort}`;
-            }
-
+            const upStream = params.domain.replace(/\./g, '_') + `_${params.protocol}`;
+            // conf.nginx.upstream._value = upStream;
+            // //UpStream只有一个对象
+            // if (conf.nginx.upstream.server.length === 'undefined') {
+            //     conf.nginx.upstream.server._value = `${params.proxyIp}:${params.proxyPort}`;
+            // }
+            let certsRes = null;
             //设置proxy_pass
-            if (conf.nginx.server.length === 'undefined') {
+            if (params.protocol === 'http') {
                 conf.nginx.server.server_name._value = `${params.domain}`;
-                conf.nginx.server.listen._value = params.listenPort;
-                conf.nginx.server.location.proxy_pass._value = `http://${upStream}`
+                conf.nginx.server.listen._value = 80;//default 80
+                conf.nginx.server.location.proxy_pass._value = `http://${params.proxyIp}:${params.proxyPort}`
             } else {
-                //第一个是Http
-                conf.nginx.server[0].server_name._value = `${params.domain}`;
-                conf.nginx.server[0].listen._value = 80;
-                conf.nginx.server[0].location.proxy_pass._value = `http://${upStream}`
-                //第二个是Https，然后用户上传证书，保存到本地，配置证书路径
-
-                conf.nginx.server[1].server_name._value = `${params.domain}`;
-                conf.nginx.server[1].listen._value = 443;
-                conf.nginx.server[1].location.proxy_pass._value = `http://${upStream}`
+                conf.nginx.server.server_name._value = `${params.domain}`;
+                conf.nginx.server.listen._value = 443;//default 80
+                conf.nginx.server.location.proxy_pass._value = `http://${params.proxyIp}:${params.proxyPort}`;
                 if (certs.pem && certs.key) {
                     //移动
                     fs.moveSync(certs.pem.path, `${certsPath}/${upStream}/cert.pem`);
                     fs.moveSync(certs.key.path, `${certsPath}/${upStream}/cert.key`);
                 } else {
                     //移动默认的
-                    fs.copySync(`${ETC_PATH}/certs`, `${certsPath}/${upStream}`);
+                    return reject('未上传证书文件');
                 }
-
-                conf.nginx.server[1].ssl_certificate._value = `${certsPath}/${upStream}/cert.pem`;
-                conf.nginx.server[1].ssl_certificate_key._value = `${certsPath}/${upStream}/cert.key`;
+                conf.nginx.server.ssl_certificate._value = `${certsPath}/${upStream}/cert.pem`;
+                conf.nginx.server.ssl_certificate_key._value = `${certsPath}/${upStream}/cert.key`;
+                certsRes = {
+                    pem: conf.nginx.server.ssl_certificate._value,
+                    key: conf.nginx.server.ssl_certificate_key._value
+                }
             }
             //force the synchronization
             conf.flush();
-
             resolve({
                 ...params,
                 name: upStream,
                 confFile: file,
-                certs: {
-                    pem: conf.nginx.server[1].ssl_certificate._value,
-                    key: conf.nginx.server[1].ssl_certificate_key._value
-                }
+                certs: certsRes
             });
         });
 
@@ -140,11 +144,17 @@ exports.domains = async () => {
 };
 /**
  * 移除Bind
+ * @param name
+ * @param protocol
+ * @returns {Promise<boolean>}
  */
-exports.remove = async (name) => {
+exports.remove = async (name, protocol) => {
     //1.移除certs
-    fs.removeSync(`${certsPath}/name`);
-    fs.removeSync(`${vHostsPath}/${name}.conf`);
+    const domain = name.replace(/\_/g, '.');
+    let confFile = `${vHostsPath}/${domain}.conf`;
+    fs.removeSync(`${certsPath}/${name}`);
+    fs.removeSync(confFile);
+    logger.info("删除文件:", confFile);
     //2.移除配置文件
     return true;
 }
