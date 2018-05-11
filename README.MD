@@ -19,3 +19,27 @@ cp config.example.json config.json
 ![](./screemshots/5.png)
 
 ## dependencies
+```json
+{
+  "dependencies": {
+    "axios": "^0.18.0",
+    "copy": "^0.3.1",
+    "fs-extra": "^6.0.0",
+    "koa": "^2.5.1",
+    "koa-body": "^2.5.0",
+    "koa-bodyparser": "^4.2.0",
+    "koa-ejs": "^4.1.1",
+    "koa-router": "^7.4.0",
+    "koa-session": "^5.8.1",
+    "koa-static": "^4.0.2",
+    "log4js": "^2.5.3",
+    "md5": "^2.2.1",
+    "nedb": "^1.8.0",
+    "nedb-promise": "^2.0.1",
+    "nginx-conf": "^1.4.0",
+    "sb-scandir": "^2.0.0",
+    "uuid": "^3.2.1",
+    "validator": "^10.2.0"
+  }
+}
+```

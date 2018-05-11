@@ -11,6 +11,21 @@ const session = require('koa-session');
 const config = require('../config');
 
 /**
+ * 检查IP是否在定义的范围馁
+ * @param ip
+ * @returns {boolean}
+ */
+function checkProxyIpProducts(ip) {
+    for (let i = 0; i < config.PROXY_IP_FILTER.length; i++) {
+        let f = config.PROXY_IP_FILTER[i];
+        if (-1 !== ip.indexOf(f)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * 获取用户产品
  * @param userId
  * @returns {Promise<Array>}
@@ -24,7 +39,7 @@ async function getUserProducts(userId) {
     const products = res.data.products.product;
     let servers = [];
     products.forEach((item) => {
-        if (item.status === 'Active') {
+        if (item.status === 'Active' && checkProxyIpProducts(item.dedicatedip)) {
             servers.push({
                 name: item.name,
                 domain: item.domain,
@@ -33,6 +48,7 @@ async function getUserProducts(userId) {
             })
         }
     });
+
     return servers;
 }
 
@@ -142,7 +158,6 @@ exports.createRouter = (app) => {
                 error: {msg: "存在重复的域名+协议规则"}
             })
         }
-
         try {
             let newFile = await Nginxer.copyNew(params.domain, params.protocol);
             let res = await Nginxer.update(newFile, certs, {
